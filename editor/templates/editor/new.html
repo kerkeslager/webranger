@@ -6,9 +6,11 @@
 <div id='editor'></div>
 
 <script type='module'>
-  import { render } from 'preact';
-  import { html } from 'htm/preact';
+  import { render, h } from 'preact';
+  import { default as htm } from 'htm';
   import { Editor } from 'editor';
+
+  const html = htm.bind(h);
 
   render(html`<${Editor} />`, document.getElementById('editor'));
 </script>

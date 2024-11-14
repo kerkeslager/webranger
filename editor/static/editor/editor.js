@@ -1,7 +1,22 @@
-import { Component } from 'preact';
-import { html } from 'htm/preact';
+import { Component, h } from 'preact';
+import { default as htm } from 'htm';
+
+const html = htm.bind(h);
 
 const RANKS = 'AKQJT98765432';
+const SUITS = 'cdhs';
+
+class Hole extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+    };
+  }
+
+  render() {
+    return html`<div>${ this.props.name }</div>`;
+  }
+}
 
 class Editor extends Component {
   constructor() {
@@ -22,11 +37,11 @@ class Editor extends Component {
         let rankJ = RANKS.charAt(j);
 
         if(i < j) {
-          columns.push(html`<td>${ rankI + rankJ + 's' }</td>`);
+          columns.push(html`<td><${Hole} name=${ rankI + rankJ + 's' }/></td>`);
         } else if(i > j) {
-          columns.push(html`<td>${ rankJ + rankI + 'o' }</td>`);
+          columns.push(html`<td><${Hole} name=${ rankJ + rankI + 'o' }/></td>`);
         } else {
-          columns.push(html`<td>${ rankI + rankJ }</td>`);
+          columns.push(html`<td><${Hole} name=${ rankI + rankJ }/></td>`);
         }
       }
 
