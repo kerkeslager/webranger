@@ -5,6 +5,9 @@ const html = htm.bind(h);
 
 const RANKS = 'AKQJT98765432';
 const SUITS = 'cdhs';
+const CARDS = [...RANKS].map(rank => {
+  return [...SUITS].map(suit => rank + suit);
+}).flat();
 
 class Hole extends Component {
   constructor(props) {
@@ -33,15 +36,33 @@ class Hole extends Component {
       }
     }
 
-    console.log(combos);
-
     this.state = {
       combos: combos,
+      isSelected: false,
     };
   }
 
   render() {
-    return html`<div>${ this.props.name }</div>`;
+    let onClick = e => {
+      this.setState({ isSelected: !this.state.isSelected });
+      this.props.onClick();
+    };
+
+    let onContextMenu = e => {
+      e.preventDefault();
+      this.props.onContext();
+    };
+
+    let selectionClass = null;
+    if(this.state.isSelected) {
+      selectionClass = 'selected';
+    }
+
+    return html`
+      <td class='${selectionClass}' onclick=${ onClick } oncontextmenu=${ onContextMenu }>
+        ${ this.props.name }
+      </td>
+    `;
   }
 
   isPair() {
@@ -57,34 +78,68 @@ class Editor extends Component {
   constructor() {
     super();
 
-    this.state = {
-    };
+    this.state = {};
+
+    for(let i = 0; i < CARDS.length - 1; i++) {
+      for(let j = i + 1; j < CARDS.length; j++) {
+        this.state[CARDS[i] + CARDS[j]] = 0;
+      }
+    }
   }
 
   render() {
-    let rows = [];
-
-    for(var i = 0; i < RANKS.length; i++) {
-      let columns = [];
-
-      for(var j = 0; j < RANKS.length; j++) {
+    let rows = [...RANKS].map((rankI, i) => {
+      let columns = [...RANKS].map((rankJ, j) => {
         let rankI = RANKS.charAt(i);
-        let rankJ = RANKS.charAt(j);
+
+        let name = null;
+        let combos = null;
 
         if(i < j) {
-          columns.push(html`<td><${Hole} name=${ rankI + rankJ + 's' }/></td>`);
+          name = rankI + rankJ + 's';
+          combos = [...SUITS].map(suit => {
+            return rankI + suit + rankJ + suit;
+          });
         } else if(i > j) {
-          columns.push(html`<td><${Hole} name=${ rankJ + rankI + 'o' }/></td>`);
+          name = rankJ + rankI + 'o';
+          combos = [...SUITS].map((suitJ, j) => {
+            return [...SUITS].filter((suit, i) => i != j).map((suitI, i) => {
+              return rankJ + suitJ + rankI + suitI;
+            });
+          }).flat();
         } else {
-          columns.push(html`<td><${Hole} name=${ rankI + rankJ }/></td>`);
+          name = rankI + rankJ;
+          combos = [...SUITS].slice(0, SUITS.length - 1).map((suitI, index) => {
+            return [...SUITS].slice(index + 1).map(suitJ => {
+              return rankI + suitI + rankJ + suitJ;
+            });
+          }).flat();
         }
-      }
 
-      rows.push(html`<tr>${ columns }</tr>`);
-    }
+        let onClick = () => {
+          let transition = {};
+          combos.forEach(combo => {
+            transition[combo] = this.state[combo] === 0 ? 1 : 0;
+          });
+          this.setState(transition);
+        };
+
+        let onContext = () => { };
+
+        return html`<${Hole}
+          name=${ name }
+          onClick=${ onClick }
+          onContext=${ onContext }/>`;
+      });
+
+      return html`<tr>${ columns }</tr>`;
+    });
 
     return html`
-      <table class='editor'>${ rows }</table>
+      <section class='editor'>
+        <table>${ rows }</table>
+        <section class='contextmenu'>Hello, world</section>
+      </section>
     `;
   }
 }
