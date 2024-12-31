@@ -1,3 +1,5 @@
+import { sml } from 'succinct';
+
 const RANKS = 'AKQJT98765432';
 const SUITS = 'cdhs';
 const CARDS = [...RANKS].map(rank => {
@@ -14,17 +16,17 @@ function Editor(properties, children) {
           if(i0 < i1) {
             return {
               tag: 'td',
-              children: [ rank0 + rank1 + 's' ],
+              children: sml`${ rank0 }${ rank1 }s`,
             };
           } else if(i0 > i1) {
             return {
               tag: 'td',
-              children: [ rank1 + rank0 + 'o' ],
+              children: sml`${ rank1 }${ rank0 }o`,
             };
           } else {
             return {
               tag: 'td',
-              children: [ rank0 + rank1 ],
+              children: sml`${ rank0 }${ rank1 }`,
             };
           }
         }),
