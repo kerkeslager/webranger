@@ -14,20 +14,11 @@ function Editor(properties, children) {
         tag: 'tr',
         children: RANKS.split('').map((rank1, i1) => {
           if(i0 < i1) {
-            return {
-              tag: 'td',
-              children: sml`${ rank0 }${ rank1 }s`,
-            };
+            return sml`<td>${ rank0 }${ rank1 }s</td>`;
           } else if(i0 > i1) {
-            return {
-              tag: 'td',
-              children: sml`${ rank1 }${ rank0 }o`,
-            };
+            return sml`<td>${ rank1 }${ rank0 }o</td>`;
           } else {
-            return {
-              tag: 'td',
-              children: sml`${ rank0 }${ rank1 }`,
-            };
+            return sml`<td>${ rank0 }${ rank1 }</td>`;
           }
         }),
       };

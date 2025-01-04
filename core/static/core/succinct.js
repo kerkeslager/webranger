@@ -39,35 +39,262 @@ function render(element, target) {
   }
 }
 
+const SYMBOL_HEAD_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwzyz';
+const SYMBOL_TAIL_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwzyz0123456789';
+const WHITESPACE_CHARS = ' \t\n\r\v';
+
 function sml(strings, ...expressions) {
-  let stack = [];
+  let scanner = {
+    stringIndex: 0,
+    characterIndex: 0,
+    inTag: false,
+    lookaheads: [],
+  };
 
-  let tag = null;
-  let properties = null;
-  let children = [];
+  function consumeWhitespace() {
+    let string = strings[scanner.stringIndex];
 
-  function emit(e) {
-    // TODO We usually know the type of e at the call site, so maybe move this first
-    // check out of this function.
-    if(typeof e === 'string' && children.length > 0 && typeof children[children.length - 1] === 'string') {
-      children[children.length - 1] = children[children.length - 1] + e;
-    } else {
-      children.push(e);
+    while(scanner.characterIndex < string.length) {
+      if(WHITESPACE_CHARS.includes(string[scanner.characterIndex])) {
+        scanner.characterIndex++;
+      } else {
+        break;
+      }
     }
   }
 
-  for(let i = 0; i < expressions.length; i++) {
-    emit(strings[i]);
-    emit(expressions[i]);
+  function scan() {
+    if(scanner.lookaheads.length > 0) {
+      return scanner.lookaheads.shift();
+    }
+
+    if(scanner.inTag) {
+      consumeWhitespace();
+
+      let string = strings[scanner.stringIndex];
+
+      if(scanner.characterIndex === string.length) {
+        if(scanner.stringIndex < expressions.length) {
+          let result = {
+            type: 'expression',
+            data: expressions[scanner.stringIndex],
+          };
+
+          scanner.stringIndex++;
+          scanner.characterIndex = 0;
+
+          return result;
+        } else {
+          return {
+            type: 'end',
+            data: null,
+          };
+        }
+      }
+
+      switch(string[scanner.characterIndex]) {
+        case '/':
+          scanner.characterIndex++;
+          return {
+            type: 'slash',
+            data: null,
+          };
+
+        case '>':
+          scanner.inTag = false;
+          scanner.characterIndex++;
+          return {
+            type: 'endTag',
+            data: null,
+          };
+
+        case '=':
+          scanner.characterIndex++;
+          return {
+            type: 'equals',
+            data: null,
+          };
+
+        default:
+          if(SYMBOL_HEAD_CHARS.includes(
+            string[scanner.characterIndex]
+          )) {
+            let start = scanner.characterIndex;
+            scanner.characterIndex++;
+
+            while(
+              scanner.characterIndex < string.length
+              && SYMBOL_TAIL_CHARS.includes(string[scanner.characterIndex])
+            ) {
+              scanner.characterIndex++;
+            }
+
+            return {
+              type: 'symbol',
+              data: string.substring(start, scanner.characterIndex),
+            };
+          } else {
+            throw `Unexpected character ${ string[scanner.characterIndex] }`;
+          }
+      }
+    } else {
+      let string = strings[scanner.stringIndex];
+      let start = scanner.characterIndex;
+
+      while(scanner.characterIndex < string.length) {
+        if(string[scanner.characterIndex] === '<') {
+          let result = {
+            type: 'string',
+            data: string.substring(start, scanner.characterIndex),
+          };
+
+          scanner.lookaheads.push({
+            type: 'startTag',
+            data: null,
+          });
+
+          scanner.inTag = true;
+          scanner.characterIndex++;
+          return result;
+        } else {
+          scanner.characterIndex++;
+        }
+      }
+
+      let result = {
+        type: 'string',
+        data: string.substring(start),
+      };
+
+      if(scanner.stringIndex < expressions.length) {
+        scanner.lookaheads.push({
+          type: 'expression',
+          data: expressions[scanner.stringIndex],
+        });
+
+        scanner.stringIndex++;
+        scanner.characterIndex = 0;
+      } else {
+        scanner.lookaheads.push({
+          type: 'end',
+          data: null,
+        });
+      }
+
+      return result;
+    }
   }
 
-  emit(strings[strings.length - 1]);
+  function peek() {
+    if(scanner.lookaheads) {
+      return scanner.lookaheads[0];
+    }
 
-  console.assert(tag === null);
-  console.assert(properties === null);
-  console.assert(length === 0);
+    let result = scan();
+    scanner.lookaheads.unshift(result);
+    return result;
+  }
 
-  return children;
+  function parseAll(expectedClose) {
+    let result = [];
+
+    while(true) {
+      let node = parse();
+
+      switch(typeof node) {
+        case 'string':
+          result.push(node);
+          break;
+
+        case 'object':
+          switch(node.tag) {
+            case '__closeSentinel__':
+              console.assert(expectedClose != null);
+              console.assert(expectedClose === node.closing);
+              return result;
+
+            case '__endSentinel__':
+              console.assert(expectedClose === null);
+              return result;
+
+            default:
+              result.push(node);
+              break;
+          } break;
+      }
+    }
+  }
+
+  function parse() {
+    let token = scan();
+
+    switch(token.type) {
+      case 'expression':
+      case 'string':
+        return token.data;
+
+      case 'end':
+        return {
+          tag: '__endSentinel__',
+        };
+
+      case 'startTag':
+        {
+          let tagToken = scan();
+
+          if(tagToken.type === 'slash') {
+            tagToken = scan();
+            console.assert(tagToken.type === 'symbol' || tagToken.type === 'expression');
+            let closing = tagToken.data;
+            tagToken = scan();
+            console.assert(tagToken.type === 'endTag');
+            return {
+              tag: '__closeSentinel__',
+              closing: closing,
+            };
+          }
+
+          console.assert(tagToken.type === 'symbol' || tagToken.type === 'expression');
+
+          let tag = tagToken.data;
+          let properties = {};
+
+          while(true) {
+            let token = scan();
+
+            if(token.type === 'symbol') {
+              let key = token.data;
+              token = scan();
+              console.assert(token.type === 'equals');
+              token = scan();
+              console.assert(token.type === 'expression');
+              let value = token.data;
+              properties[key] = value;
+            } else if(token.type === 'slash') {
+              token = scan();
+              console.assert(token.type === 'endTag');
+              return {
+                tag: tag,
+                properties: properties,
+                children: [],
+              };
+            } else if(token.type === 'endTag') {
+              let children = parseAll(tag);
+
+              return {
+                tag: tag,
+                properties: properties,
+                children: children,
+              };
+            }
+          }
+        } break;
+      default:
+        throw `Unexpected token of type ${ token.type }`;
+    }
+  }
+
+  return parseAll(null);
 }
 
 export { render, sml };
