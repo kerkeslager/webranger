@@ -13,26 +13,30 @@ function Hole() {
 }
 
 function Editor() {
-  return (properties, children) => {
-    let rows = [];
+  let matrix = [];
 
-    for(let i = 0; i < RANKS.length; i++) {
-      let columns = [];
+  for(let i = 0; i < RANKS.length; i++) {
+    let columns = [];
 
-      for(let j = 0; j < RANKS.length; j++) {
-        if(i < j) {
-          columns.push(sml`<${ Hole() } descriptor=${ RANKS[i] + RANKS[j] + 's' } />`);
-        } else if(i > j) {
-          columns.push(sml`<${ Hole() } descriptor=${ RANKS[j] + RANKS[i] + 'o' } />`);
-        } else {
-          columns.push(sml`<${ Hole() } descriptor=${ RANKS[i] + RANKS[j] } />`);
-        }
+    for(let j = 0; j < RANKS.length; j++) {
+      if(i < j) {
+        columns.push(RANKS[i] + RANKS[j] + 's');
+      } else if(i > j) {
+        columns.push(RANKS[j] + RANKS[i] + 'o');
+      } else {
+        columns.push(RANKS[i] + RANKS[j]);
       }
-
-      rows.push(sml`<tr>${ columns }</tr>`);
     }
 
-    return sml`<table>${ rows }</table>`;
+    matrix.push(columns);
+  }
+
+  return (properties, children) => {
+    return sml`<table>${
+      matrix.map(row => sml`<tr>${
+        row.map(column => sml`<${ Hole() } descriptor=${ column } />`)
+      }</tr>`)
+    }</table>`;
   };
 }
 
