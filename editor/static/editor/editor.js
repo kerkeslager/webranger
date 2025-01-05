@@ -1,4 +1,4 @@
-import { sml } from 'succinct';
+import { State, sml } from 'succinct';
 
 const RANKS = 'AKQJT98765432';
 const SUITS = 'cdhs';
@@ -13,27 +13,33 @@ function Hole(props, children) {
 }
 
 function Editor(props, children) {
-  let matrix = [];
+  let descriptorMatrix = [];
+  let rangeStates = {};
 
   for(let i = 0; i < RANKS.length; i++) {
     let columns = [];
 
     for(let j = 0; j < RANKS.length; j++) {
+      let descriptor = null;
+
       if(i < j) {
-        columns.push(RANKS[i] + RANKS[j] + 's');
+        descriptor = RANKS[i] + RANKS[j] + 's';
       } else if(i > j) {
-        columns.push(RANKS[j] + RANKS[i] + 'o');
+        descriptor = RANKS[j] + RANKS[i] + 'o';
       } else {
-        columns.push(RANKS[i] + RANKS[j]);
+        descriptor = RANKS[i] + RANKS[j];
       }
+
+      columns.push(descriptor);
+      rangeStates[descriptor] = new State(false);
     }
 
-    matrix.push(columns);
+    descriptorMatrix.push(columns);
   }
 
   return (properties, children) => {
     return sml`<table>${
-      matrix.map(row => sml`<tr>${
+      descriptorMatrix.map(row => sml`<tr>${
         row.map(column => sml`<${ Hole } descriptor=${ column } />`)
       }</tr>`)
     }</table>`;

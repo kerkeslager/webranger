@@ -2,6 +2,36 @@
  * This file will later be split out to create a component library.
  */
 
+class State {
+  #value;
+  #subscribers;
+
+  constructor(initial) {
+    this.#value = initial;
+    this.#subscribers = new Set();
+  }
+
+  get value() {
+    return this.#value;
+  }
+
+  set value(newValue) {
+    if(newValue !== this.#value) {
+      let oldValue = this.#value;
+      this.#value = oldValue;
+      this.#subscribers.forEach(f => f(newValue, oldValue));
+    }
+  }
+
+  subscribe(changeHandler) {
+    this.#subscribers.add(changeHandler);
+  }
+
+  unsubscribe(changeHandler) {
+    this.#subscribers.remove(changeHandler);
+  }
+}
+
 function render(element, target) {
   switch(typeof element) {
     case 'string':
@@ -299,4 +329,4 @@ function sml(strings, ...expressions) {
   return parseAll(null);
 }
 
-export { render, sml };
+export { State, render, sml };
