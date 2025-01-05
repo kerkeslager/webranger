@@ -1,42 +1,43 @@
-import { Component } from 'preact';
-import { html } from 'htm/preact';
+import { sml } from 'succinct';
 
 const RANKS = 'AKQJT98765432';
+const SUITS = 'cdhs';
+const CARDS = [...RANKS].map(rank => {
+  return [...SUITS].map(suit => rank + suit);
+}).flat();
 
-class Editor extends Component {
-  constructor() {
-    super();
+function Hole() {
+  return (properties, children) => {
+    return sml`<td>${ properties.descriptor }</td>`;
+  };
+}
 
-    this.state = {
-    };
-  }
+function Editor() {
+  let matrix = [];
 
-  render() {
-    let rows = [];
+  for(let i = 0; i < RANKS.length; i++) {
+    let columns = [];
 
-    for(var i = 0; i < RANKS.length; i++) {
-      let columns = [];
-
-      for(var j = 0; j < RANKS.length; j++) {
-        let rankI = RANKS.charAt(i);
-        let rankJ = RANKS.charAt(j);
-
-        if(i < j) {
-          columns.push(html`<td>${ rankI + rankJ + 's' }</td>`);
-        } else if(i > j) {
-          columns.push(html`<td>${ rankJ + rankI + 'o' }</td>`);
-        } else {
-          columns.push(html`<td>${ rankI + rankJ }</td>`);
-        }
+    for(let j = 0; j < RANKS.length; j++) {
+      if(i < j) {
+        columns.push(RANKS[i] + RANKS[j] + 's');
+      } else if(i > j) {
+        columns.push(RANKS[j] + RANKS[i] + 'o');
+      } else {
+        columns.push(RANKS[i] + RANKS[j]);
       }
-
-      rows.push(html`<tr>${ columns }</tr>`);
     }
 
-    return html`
-      <table class='editor'>${ rows }</table>
-    `;
+    matrix.push(columns);
   }
+
+  return (properties, children) => {
+    return sml`<table>${
+      matrix.map(row => sml`<tr>${
+        row.map(column => sml`<${ Hole() } descriptor=${ column } />`)
+      }</tr>`)
+    }</table>`;
+  };
 }
 
 export { Editor };

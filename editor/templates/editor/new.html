@@ -6,10 +6,8 @@
 <div id='editor'></div>
 
 <script type='module'>
-  import { render } from 'preact';
-  import { html } from 'htm/preact';
+  import { render, sml } from 'succinct';
   import { Editor } from 'editor';
-
-  render(html`<${Editor} />`, document.getElementById('editor'));
+  render(sml`<${ Editor() }/>`, document.getElementById('editor'));
 </script>
 {% endblock %}
