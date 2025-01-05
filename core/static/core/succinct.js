@@ -17,7 +17,9 @@ function render(element, target) {
             render(item, target);
           }
         } else if(typeof (element.tag) == 'function') {
-          render(element.tag(element.properties, element.children), target);
+          let renderer = element.tag(element.properties, element.children);
+
+          render(renderer(element.properties, element.children), target);
         } else {
           let node = document.createElement(element.tag);
 

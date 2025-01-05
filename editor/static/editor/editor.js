@@ -6,13 +6,13 @@ const CARDS = [...RANKS].map(rank => {
   return [...SUITS].map(suit => rank + suit);
 }).flat();
 
-function Hole() {
+function Hole(props, children) {
   return (properties, children) => {
     return sml`<td>${ properties.descriptor }</td>`;
   };
 }
 
-function Editor() {
+function Editor(props, children) {
   let matrix = [];
 
   for(let i = 0; i < RANKS.length; i++) {
@@ -34,7 +34,7 @@ function Editor() {
   return (properties, children) => {
     return sml`<table>${
       matrix.map(row => sml`<tr>${
-        row.map(column => sml`<${ Hole() } descriptor=${ column } />`)
+        row.map(column => sml`<${ Hole } descriptor=${ column } />`)
       }</tr>`)
     }</table>`;
   };
