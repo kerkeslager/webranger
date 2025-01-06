@@ -12,13 +12,17 @@ function Hole(props, children) {
   };
 
   return (properties, children) => {
-    return sml`<td onClick=${onClick}>${ properties.descriptor }</td>`;
+    if(properties.selected) {
+      return sml`<td class=${ 'selected' } onClick=${onClick}>${ properties.descriptor }</td>`;
+    } else {
+      return sml`<td onClick=${onClick}>${ properties.descriptor }</td>`;
+    }
   };
 }
 
 function Editor(props, children) {
   let descriptorMatrix = [];
-  let rangeStates = {};
+  let range = {};
 
   for(let i = 0; i < RANKS.length; i++) {
     let columns = [];
@@ -35,7 +39,7 @@ function Editor(props, children) {
       }
 
       columns.push(descriptor);
-      rangeStates[descriptor] = new State(false);
+      range[descriptor] = new State(false);
     }
 
     descriptorMatrix.push(columns);
@@ -44,7 +48,7 @@ function Editor(props, children) {
   return (properties, children) => {
     return sml`<table>${
       descriptorMatrix.map(row => sml`<tr>${
-        row.map(column => sml`<${ Hole } descriptor=${ column } />`)
+        row.map(column => sml`<${ Hole } descriptor=${ column } selected:=${ range[column] }/>`)
       }</tr>`)
     }</table>`;
   };

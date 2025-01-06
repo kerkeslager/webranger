@@ -47,6 +47,21 @@ function render(element, target) {
   target.appendChild(dom);
 }
 
+function getRendererProps(element) {
+  let result = {};
+
+  for(const [key, value] of Object.entries(element.properties)) {
+    if(element.watchlist.has(key)) {
+      console.assert(value.constructor.name === 'State');
+      result[key] = value.value;
+    } else {
+      result[key] = value;
+    }
+  }
+
+  return result;
+}
+
 function createDOM(element) {
   switch(typeof element) {
     case 'string':
@@ -56,13 +71,15 @@ function createDOM(element) {
       switch(typeof element.tag) {
         case 'function':
           let renderer = element.tag(element.properties, element.children);
-          return createDOM(renderer(element.properties, element.children));
+          let rendererProps = getRendererProps(element);
+          return createDOM(renderer(rendererProps, element.children));
 
         case 'string':
           let dom = document.createElement(element.tag);
 
           if(element.properties) {
-            for(const [key, value] of Object.entries(element.properties)) {
+            let rendererProps = getRendererProps(element);
+            for(const [key, value] of Object.entries(rendererProps)) {
               if(key.startsWith('on')) {
                 // TODO Enforce case convention
                 // TODO Do we need to remove these event listeners at some point?
@@ -160,6 +177,16 @@ function sml(strings, ...expressions) {
           scanner.characterIndex++;
           return {
             type: 'equals',
+            data: null,
+          };
+
+        case ':':
+          scanner.characterIndex++;
+          console.assert(scanner.characterIndex < string.length);
+          console.assert(string[scanner.characterIndex] == '=');
+          scanner.characterIndex++;
+          return {
+            type: 'stateEquals',
             data: null,
           };
 
@@ -306,6 +333,7 @@ function sml(strings, ...expressions) {
 
           let tag = tagToken.data;
           let properties = {};
+          let watchlist = new Set();
 
           while(true) {
             let token = scan();
@@ -313,7 +341,13 @@ function sml(strings, ...expressions) {
             if(token.type === 'symbol') {
               let key = token.data;
               token = scan();
-              console.assert(token.type === 'equals');
+
+              if(token.type === 'stateEquals') {
+                watchlist.add(key);
+              } else {
+                console.assert(token.type === 'equals');
+              }
+
               token = scan();
               console.assert(token.type === 'expression');
               let value = token.data;
@@ -325,6 +359,7 @@ function sml(strings, ...expressions) {
                 tag: tag,
                 properties: properties,
                 children: [],
+                watchlist: watchlist,
               };
             } else if(token.type === 'endTag') {
               let children = parseAll(tag);
@@ -333,6 +368,7 @@ function sml(strings, ...expressions) {
                 tag: tag,
                 properties: properties,
                 children: children,
+                watchlist: watchlist,
               };
             }
           }
