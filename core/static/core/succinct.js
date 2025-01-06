@@ -33,41 +33,50 @@ class State {
 }
 
 function render(element, target) {
+  if(!element) return;
+
+  if(Array.isArray(element)) {
+    for(const item of element) {
+      render(item, target);
+    }
+    return;
+  }
+
+  let dom = createDOM(element);
+
+  target.appendChild(dom);
+}
+
+function createDOM(element) {
   switch(typeof element) {
     case 'string':
-      {
-        let node = document.createTextNode(element);
-        target.appendChild(node);
-      } break;
+      return document.createTextNode(element);
 
     case 'object':
-      {
-        if(Array.isArray(element)) {
-          for(const item of element) {
-            render(item, target);
-          }
-        } else if(typeof (element.tag) == 'function') {
+      switch(typeof element.tag) {
+        case 'function':
           let renderer = element.tag(element.properties, element.children);
+          return createDOM(renderer(element.properties, element.children));
 
-          render(renderer(element.properties, element.children), target);
-        } else {
-          let node = document.createElement(element.tag);
+        case 'string':
+          let dom = document.createElement(element.tag);
 
           if(element.properties) {
             for(const [key, value] of Object.entries(element.properties)) {
-              node.setAttribute(key, value);
+              dom.setAttribute(key, value);
             }
           }
 
-          if(element.children) {
-            for(const child of element.children) {
-              render(child, node);
-            }
-          }
+          render(element.children, dom);
 
-          target.appendChild(node);
-        }
-      } break;
+          return dom;
+
+        default:
+          throw `Unexpected tag type: '${ typeof element.tag }'`;
+      }
+
+    default:
+      throw `Unexpected element type: '${ typeof element }'`;
   }
 }
 
@@ -235,7 +244,7 @@ function sml(strings, ...expressions) {
 
       switch(typeof node) {
         case 'string':
-          result.push(node);
+          if(node.length > 0) result.push(node);
           break;
 
         case 'object':
@@ -326,7 +335,14 @@ function sml(strings, ...expressions) {
     }
   }
 
-  return parseAll(null);
+  // TODO It's a bit awkward that we always return an array, can we optimize it?
+  let result = parseAll(null);
+
+  if(result.length != 1) {
+    throw `An sml expression must contain exactly 1 element, found ${ result.length }`;
+  }
+
+  return result[0];
 }
 
 export { State, render, sml };
