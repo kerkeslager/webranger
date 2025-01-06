@@ -18,7 +18,7 @@ class State {
   set value(newValue) {
     if(newValue !== this.#value) {
       let oldValue = this.#value;
-      this.#value = oldValue;
+      this.#value = newValue;
       this.#subscribers.forEach(f => f(newValue, oldValue));
     }
   }

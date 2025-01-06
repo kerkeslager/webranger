@@ -8,7 +8,7 @@ const CARDS = [...RANKS].map(rank => {
 
 function Hole(props, children) {
   let onClick = e => {
-    console.log(props.descriptor + ' clicked');
+    props.selected.value = !(props.selected.value);
   };
 
   return (properties, children) => {
