@@ -7,8 +7,12 @@ const CARDS = [...RANKS].map(rank => {
 }).flat();
 
 function Hole(props, children) {
+  let onClick = e => {
+    console.log(props.descriptor + ' clicked');
+  };
+
   return (properties, children) => {
-    return sml`<td>${ properties.descriptor }</td>`;
+    return sml`<td onClick=${onClick}>${ properties.descriptor }</td>`;
   };
 }
 

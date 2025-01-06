@@ -63,7 +63,14 @@ function createDOM(element) {
 
           if(element.properties) {
             for(const [key, value] of Object.entries(element.properties)) {
-              dom.setAttribute(key, value);
+              if(key.startsWith('on')) {
+                // TODO Enforce case convention
+                // TODO Do we need to remove these event listeners at some point?
+                let type = key.substring(2).toLowerCase();
+                dom.addEventListener(type, value);
+              } else {
+                dom.setAttribute(key, value);
+              }
             }
           }
 
