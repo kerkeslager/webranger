@@ -88,6 +88,84 @@ class StateList {
     this.#items.splice(start, deleteCount, ...items);
     this.#subscribers.forEach(s => s.onSplice(start, deleteCount, items, oldItems));
   }
+
+  get length() {
+    return this.#items.length;
+  }
+
+  forEach(f) {
+    this.#items.forEach(f);
+  }
+}
+
+class MappedStateList {
+  #lists;
+  #items;
+
+  constructor(f, ...lists) {
+    this.#lists = [];
+
+    lists.forEach(l => {
+      // In-place flatten the list
+      for(let i = 0; i < l.length; i++) {
+        while(Array.isArray(l[i])) {
+          l.splice(i, 1, ...l[i]);
+        }
+      }
+
+      // Pull any StateLists up a level while inserting
+      let start = 0;
+      let i = 0;
+      for(; i < l.length; i++) {
+        if(l[i].constructor.name === 'StateList') {
+          if(i > start) {
+            this.#lists.push(l.slice(start,i));
+          }
+          this.#lists.push(l[i]);
+          start = i + 1;
+        }
+      }
+
+      if(i > start) {
+        this.#lists.push(l.slice(start,i));
+      }
+    });
+
+    let items = [];
+
+    this.#lists.forEach(l => l.forEach(i => items.push(i)));
+
+    this.#items = new StateList(items);
+
+    this.#lists.forEach(l,index => {
+      if(l.constructor.name === 'StateList') {
+        l.subscribe({
+          onSet: (i, n, o) => {
+            let indexModifier = 0;
+            for(let j = 0; j < index; j++) indexModifier += this.#lists.length;
+            this.#items.setItem(indexModifier + i, n);
+          },
+          onSplice: (s, dc, n, o) => {
+            let indexModifier = 0;
+            for(let j = 0; j < index; j++) indexModifier += this.#lists.length;
+            this.#items.splice(indexModifier + s, dc, ...n);
+          },
+        });
+      }
+    });
+  }
+
+  getItem(i) {
+    return this.#items.getItem(i);
+  }
+
+  subscribe(s) {
+    this.#items.subscribe(s);
+  }
+
+  unsubscribe(s) {
+    this.#items.unsubscribe(s);
+  }
 }
 
 function render(element, target) {
