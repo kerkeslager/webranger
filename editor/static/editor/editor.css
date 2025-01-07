@@ -26,21 +26,4 @@
       background: lightblue;
     }
   }
-
-  & .contextmenu {
-    display: none;
-    position: absolute;
-
-    width: 10rem;
-    top: calc(50% - 5rem);
-    height: 10rem;
-    left: calc(50% - 5rem);
-
-    border: 1px solid black;
-    background: white;
-  }
-
-  & .contextmenu.display {
-    display: flex;
-  }
 }
