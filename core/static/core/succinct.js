@@ -126,8 +126,8 @@ function createDOM(element) {
   }
 }
 
-const SYMBOL_HEAD_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwzyz';
-const SYMBOL_TAIL_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwzyz0123456789';
+const SYMBOL_HEAD_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const SYMBOL_TAIL_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-';
 const WHITESPACE_CHARS = ' \t\n\r\v';
 
 function sml(strings, ...expressions) {
@@ -205,7 +205,8 @@ function sml(strings, ...expressions) {
 
             for(; scanner.characterIndex < string.length; scanner.characterIndex++) {
               if(string[scanner.characterIndex] == startChar) {
-                let data = string.substring(startChar, scanner.characterIndex);
+                let data = string.substring(startIndex, scanner.characterIndex);
+
                 scanner.characterIndex++;
                 return {
                   type: 'expression',
@@ -253,7 +254,7 @@ function sml(strings, ...expressions) {
               data: string.substring(start, scanner.characterIndex),
             };
           } else {
-            throw `Unexpected character ${ string[scanner.characterIndex] }`;
+            throw `Unexpected character ${ string[scanner.characterIndex] } in '${ string }' at ${ scanner.characterIndex }`;
           }
       }
     } else {
