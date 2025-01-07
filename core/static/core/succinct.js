@@ -70,30 +70,52 @@ function createDOM(element) {
     case 'object':
       switch(typeof element.tag) {
         case 'function':
-          let renderer = element.tag(element.properties, element.children);
-          let rendererProps = getRendererProps(element);
-          return createDOM(renderer(rendererProps, element.children));
-
-        case 'string':
-          let dom = document.createElement(element.tag);
-
-          if(element.properties) {
+          {
+            let renderer = element.tag(element.properties, element.children);
             let rendererProps = getRendererProps(element);
-            for(const [key, value] of Object.entries(rendererProps)) {
-              if(key.startsWith('on')) {
-                // TODO Enforce case convention
-                // TODO Do we need to remove these event listeners at some point?
-                let type = key.substring(2).toLowerCase();
-                dom.addEventListener(type, value);
-              } else {
-                dom.setAttribute(key, value);
-              }
+            let dom = createDOM(renderer(rendererProps, element.children));
+
+            // TODO We probably need to unsubscribe when this dom is replaced
+
+            for(const watchedProp of element.watchlist) {
+              console.assert(element.properties[watchedProp].constructor.name == 'State');
+              element.properties[watchedProp].subscribe((newValue, oldValue) => {
+                rendererProps[watchedProp] = newValue;
+
+                // TODO This is a bit heavy-handed, we should optimize
+                let newDom = createDOM(renderer(rendererProps, element.children));
+                dom.replaceWith(newDom);
+                dom = newDom;
+              });
             }
+
+            return dom;
           }
 
-          render(element.children, dom);
+        case 'string':
+          {
+            let dom = document.createElement(element.tag);
 
-          return dom;
+            if(element.properties) {
+              let rendererProps = getRendererProps(element);
+              for(const [key, value] of Object.entries(rendererProps)) {
+                if(key.startsWith('on')) {
+                  // TODO Enforce case convention
+                  // TODO Do we need to remove these event listeners at some point?
+                  let type = key.substring(2).toLowerCase();
+                  dom.addEventListener(type, value);
+                } else {
+                  dom.setAttribute(key, value);
+                }
+              }
+            }
+
+            render(element.children, dom);
+
+            // TODO We need to rerender when watched props are changed
+
+            return dom;
+          }
 
         default:
           throw `Unexpected tag type: '${ typeof element.tag }'`;
@@ -172,6 +194,28 @@ function sml(strings, ...expressions) {
             type: 'endTag',
             data: null,
           };
+
+        case "'":
+        case '"':
+          {
+            let startChar = string[scanner.characterIndex];
+            scanner.characterIndex++;
+
+            let startIndex = scanner.characterIndex;
+
+            for(; scanner.characterIndex < string.length; scanner.characterIndex++) {
+              if(string[scanner.characterIndex] == startChar) {
+                let data = string.substring(startChar, scanner.characterIndex);
+                scanner.characterIndex++;
+                return {
+                  type: 'expression',
+                  data: data,
+                };
+              }
+            }
+
+            throw 'Unexpected end of source during string scanning';
+          }
 
         case '=':
           scanner.characterIndex++;

@@ -46,11 +46,13 @@ function Editor(props, children) {
   }
 
   return (properties, children) => {
-    return sml`<table>${
-      descriptorMatrix.map(row => sml`<tr>${
-        row.map(column => sml`<${ Hole } descriptor=${ column } selected:=${ range[column] }/>`)
-      }</tr>`)
-    }</table>`;
+    return sml`<section class='editor'>
+      <table>${
+        descriptorMatrix.map(row => sml`<tr>${
+          row.map(column => sml`<${ Hole } descriptor=${ column } selected:=${ range[column] }/>`)
+        }</tr>`)
+      }</table>
+    </section>`;
   };
 }
 
