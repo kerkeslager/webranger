@@ -32,6 +32,64 @@ class State {
   }
 }
 
+class StateList {
+  #items;
+  #subscribers;
+
+  constructor(initial) {
+    this.#items = initial;
+    this.#subscribers = new Set();
+  }
+
+  subscribe(handlers) {
+    console.assert(handlers.onSet);
+    console.assert(handlers.onSplice);
+    this.#subscribers.add(handlers);
+  }
+
+  unsubscribe(handlers) {
+    this.#subscribers.remove(handlers);
+  }
+
+  getItem(index) {
+    return this.#items[index];
+  }
+
+  setItem(index, newValue) {
+    if(newValue !== this.#items[index]) {
+      let oldValue = this.#items[index];
+      this.#items[index] = newValue;
+      this.#subscribers.forEach(s => s.onSet(index, newValue, oldValue));
+    }
+  }
+
+  splice(start, deleteCount, ...items) {
+    /*
+     * We're choosing this interface because it's the most general-purpose
+     * and it already exists in JS, not because it's good.
+     */
+
+    // Don't call handlers if this splice doesn't do anything
+    if(deleteCount === items.length) {
+      let changeFound = false;
+
+      for(let i = 0; i < deleteCount; i++) {
+        if(this.#items[i + start] !== items[i]) {
+          changeFound = true;
+          break;
+        }
+      }
+
+      if(!changeFound) return;
+    }
+
+    let oldItems = this.#items.slice(start, start + deleteCount);
+
+    this.#items.splice(start, deleteCount, ...items);
+    this.#subscribers.forEach(s => s.onSplice(start, deleteCount, items, oldItems));
+  }
+}
+
 function render(element, target) {
   if(!element) return;
 
