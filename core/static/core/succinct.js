@@ -248,7 +248,29 @@ function createDOM(element) {
 
             render(element.children, dom);
 
-            // TODO We need to rerender when watched props are changed
+            for(const watchedProp of element.watchlist) {
+              console.assert(element.properties[watchedProp].constructor.name == 'State');
+              element.properties[watchedProp].subscribe((newValue, oldValue) => {
+                let newDom = document.createElement(element.tag);
+
+                rendererProps[watchedProp] = newValue;
+
+                for(const [key, value] of Object.entries(rendererProps)) {
+                  if(key.startsWith('on')) {
+                    // TODO Enforce case convention
+                    // TODO Do we need to remove these event listeners at some point?
+                    let type = key.substring(2).toLowerCase();
+                    newDom.addEventListener(type, value);
+                  } else {
+                    newDom.setAttribute(key, value);
+                  }
+                }
+
+                // TODO This is a bit heavy-handed, we should optimize
+                dom.replaceWith(newDom);
+                dom = newDom;
+              });
+            }
 
             return dom;
           }
