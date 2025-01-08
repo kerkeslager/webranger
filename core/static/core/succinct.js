@@ -353,6 +353,19 @@ function sml(strings, ...expressions) {
             data: null,
           };
 
+        case '[':
+          scanner.characterIndex++;
+          console.assert(scanner.characterIndex < string.length);
+          console.assert(string[scanner.characterIndex] === ']');
+          scanner.characterIndex++;
+          console.assert(scanner.characterIndex < string.length);
+          console.assert(string[scanner.characterIndex] === '=');
+          scanner.characterIndex++;
+          return {
+            type: 'listProp',
+            data: null,
+          };
+
         case "'":
         case '"':
           {
@@ -537,6 +550,8 @@ function sml(strings, ...expressions) {
           let tag = tagToken.data;
           let properties = {};
           let watchlist = new Set();
+          let children = [];
+          let isListComponent = false;
 
           while(true) {
             let token = scan();
@@ -561,11 +576,16 @@ function sml(strings, ...expressions) {
               return {
                 tag: tag,
                 properties: properties,
-                children: [],
+                children: children,
                 watchlist: watchlist,
+                isListComponent: isListComponent,
               };
             } else if(token.type === 'endTag') {
               let children = parseAll(tag);
+
+              if(children.length > 0 && isListComponent) {
+                throw 'Cannot define children in a list component';
+              }
 
               return {
                 tag: tag,
@@ -573,6 +593,20 @@ function sml(strings, ...expressions) {
                 children: children,
                 watchlist: watchlist,
               };
+            } else if(token.type === 'listProp') {
+              if(isListComponent) {
+                throw 'May not define more than one dynamic child list in a tag';
+              }
+
+              token = scan();
+              console.assert(token.type === 'expression');
+              console.assert(token.data.constructor.name === 'StateList');
+              isListComponent = true;
+              children = token.data;
+
+              // TODO Enforce that a tag does not have both a listProp and children
+              // TODO Maybe join the listProp and chilren into one variable since they
+              // are similar?
             }
           }
         } break;
